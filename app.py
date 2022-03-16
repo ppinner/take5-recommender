@@ -5,6 +5,7 @@ from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 import random
 from flask import Flask
+from flask_cors import CORS, cross_origin
 
 password = "dataGuy1"
 username = "dataGuy"
@@ -13,11 +14,8 @@ host = 'cluster0.uyjm9.mongodb.net'
 port = 27018
 
 app = Flask(__name__)
-
-
-@app.route("/")
-def hello_world():
-    return "<p>Helo, World!</p>"
+CORS(app, resources={r"/recommender/*": {"origins": "http://localhost:3000"}})
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 
 def _connect_mongo(host, port, username, password, db):
@@ -133,7 +131,6 @@ def filter_activities(activities, user_id):
 
     categoriesExpanded = pd.DataFrame(activityOptions['category'].tolist()).add_prefix('category')
     activityOptions[categoriesExpanded.columns.values] = categoriesExpanded
-    activityOptions = activityOptions.drop('category', axis=1)
     merged = activityOptions.merge(activities, on="_id")
 
     # get only those in user focus and lowest scoring category
@@ -161,7 +158,8 @@ def filter_by_category_string(category_headers, categories):
     return string
 
 
-@app.route('/user/<string:user_id>')
+@app.route('/recommender/user/<string:user_id>', methods=["GET"])
+@cross_origin()
 def recommend_for_user(user_id):
     print('Finding recommendation for user: ' + user_id)
     # Step 1: Get set of similar users
@@ -173,13 +171,16 @@ def recommend_for_user(user_id):
     # Step 3: Filter these activities by the user's current goal/lowest score and return top suggestion
     if len(activities) > 1:
         filtered_activities = filter_activities(activities, user_id)
-        return str(filtered_activities.nlargest(1, 'times_logged').iloc[0]["_id"])
+        top_activity = filtered_activities.nlargest(1, 'times_logged').iloc[0]
+        x = '{"name":"' + top_activity["name"] + '", "category":["' + '", "'.join(top_activity["category"])+'"]}'
+        return x
     elif len(activities) == 0:
         return None
     else:
-        return activities.nlargest(1, 'times_logged').iloc[0]["_id"]
+        top_activity = activities.nlargest(1, 'times_logged').iloc[0]
+        x = '{ "name":' + top_activity["name"] + ', "category":[' + ",".join(top_activity["category"])+'] }'
+        return x
 
 
-# print(recommend_for_user("61cc7e34b137a57798047db1"))
 if __name__ == '__main__':
     app.run()
