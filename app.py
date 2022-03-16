@@ -1,16 +1,23 @@
-# importing necessary libraries
 import pandas as pd
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
 import random
+from flask import Flask
 
 password = "dataGuy1"
 username = "dataGuy"
 db = "Take5"
 host = 'cluster0.uyjm9.mongodb.net'
 port = 27018
+
+app = Flask(__name__)
+
+
+@app.route("/")
+def hello_world():
+    return "<p>Helo, World!</p>"
 
 
 def _connect_mongo(host, port, username, password, db):
@@ -154,7 +161,9 @@ def filter_by_category_string(category_headers, categories):
     return string
 
 
+@app.route('/user/<string:user_id>')
 def recommend_for_user(user_id):
+    print('Finding recommendation for user: ' + user_id)
     # Step 1: Get set of similar users
     similar_users = get_similar_users(user_id, 5)
 
@@ -164,11 +173,13 @@ def recommend_for_user(user_id):
     # Step 3: Filter these activities by the user's current goal/lowest score and return top suggestion
     if len(activities) > 1:
         filtered_activities = filter_activities(activities, user_id)
-        return filtered_activities.nlargest(1, 'times_logged')
+        return str(filtered_activities.nlargest(1, 'times_logged').iloc[0]["_id"])
     elif len(activities) == 0:
         return None
     else:
-        return activities.nlargest(1, 'times_logged')
+        return activities.nlargest(1, 'times_logged').iloc[0]["_id"]
 
 
-print(recommend_for_user("61cc7e34b137a57798047db1"))
+# print(recommend_for_user("61cc7e34b137a57798047db1"))
+if __name__ == '__main__':
+    app.run()
