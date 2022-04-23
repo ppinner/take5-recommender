@@ -17,7 +17,8 @@ app = Flask(__name__)
 CORS(app, resources={r"/recommender/*": {"origins": "http://localhost:3000"}})
 app.config['CORS_HEADERS'] = 'Content-Type'
 
-
+# This method was taken from an answer on the following StackOverflow blog by waitingkuo
+# https://stackoverflow.com/questions/16249736/how-to-import-data-from-mongodb-to-pandas
 def _connect_mongo(host, port, username, password, db):
     """ A util for making a connection to mongo """
 
@@ -29,7 +30,8 @@ def _connect_mongo(host, port, username, password, db):
 
     return conn[db]
 
-
+# This method was taken from an answer on the following StackOverflow blog by waitingkuo and extended for application requirements
+# https://stackoverflow.com/questions/16249736/how-to-import-data-from-mongodb-to-pandas
 def read_mongo(db, collection, query, host, port, username, password, no_id, agg):
     """ Read from Mongo and Store into DataFrame """
 
@@ -60,7 +62,8 @@ def format_user_dataframe(user_dataframe):
 
     return output_df
 
-
+# This code is heavily influenced by Bernard Kurka's User based Movie Recommender Engine, publicly available on GitHub:
+# https://github.com/berkurka/MovieRecommender/blob/master/Movie_Recommender.ipynb
 def get_similar_users(user_id, num_neighbours):
     all_users = read_mongo(db, 'users', {}, host, port, username, password, False, False)
     userDF = format_user_dataframe(all_users).fillna(0)
